@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+option go_package = "github.com/ebpflabs/hyperion/protos";
+
+package hyperion;
+
+import "google/protobuf/any.proto";
+
+// Hyperion is the main service and describes the entire
+// gRPC API for the service
+service Hyperion {
+	// Apply RPC will take in a apply request which can result in a creation
+	// of a hyperion module or updation of the module config
+	rpc Apply(ApplyRequest) returns (ApplyResponse);
+
+	// Delete RPC will take in a delete request which accepts the version, name and namespace
+	// of a module and will delete the module
+	rpc Delete(DeleteRequest) returns (DeleteResponse);
+
+	// List RPC will take a list request which can EITHER specify a label based selectors
+	// OR can specify core module data like name, version, namespace etc. and will list the modules
+	rpc List(ListRequest) returns (stream GetResponse);
+
+	// Get RPC will take in a get request which will return the info of the module
+	// specified in the request
+	rpc Get(GetRequest) returns (GetResponse);
+
+	// WatchData RPC will will take a list request which can EITHER specify a label based selectors
+	// OR can specify core module data like name, version, namespace etc. and will get data for the 
+	// modules that match the filters
+	rpc WatchData(WatchDataRequest) returns (stream WatchDataResponse);
+}
+
+//=================================== RPC COMPONENTS ======================================
+
+message ApplyRequest {
+	Module module = 1;
+}
+message ApplyResponse {
+	string msg = 1;
+}
+
+message DeleteRequest {
+	ModuleCore core = 1;
+}
+message DeleteResponse {
+	string msg = 1;
+}
+
+message ListRequest {
+	oneof filter {
+		LabelSelector label = 1;
+		ModuleCore core = 2;
+	}
+}
+
+message GetRequest {
+	ModuleCore core = 1;
+}
+message GetResponse {
+	Module module = 1;
+}
+
+message WatchDataRequest {
+	oneof filter {
+		LabelSelector label = 1;
+		ModuleCore core = 2;
+	}
+}
+message WatchDataResponse {
+	google.protobuf.Any data = 1;
+}
+
+//=================================== METADATA COMPONENTS ======================================
+
+message LabelSelector {
+	map<string, string> selector = 1;
+}
+
+//=================================== CORE COMPONENTS ======================================
+
+message Module {
+	ModuleCore core = 1;
+	ModuleMetadata metadata = 2;
+	ModuleSpec spec = 3;
+}
+
+message ModuleCore {
+	string version = 1;
+	string name = 2;
+	string namespace = 3;
+}
+
+message ModuleMetadata {
+	map<string, string> labels = 1;
+	string location = 2;
+	string sha256 = 3;
+}
+
+message ModuleSpec {
+	google.protobuf.Any wasm = 1;
+
+	oneof dataSource {
+		LabelSelector label = 2;
+		ModuleCore core = 3;
+	}
+}
