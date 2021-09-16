@@ -658,6 +658,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "prost",
+ "prost-types",
  "tokio",
  "tokio-stream",
  "tonic",
