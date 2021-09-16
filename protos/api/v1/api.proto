@@ -1,14 +1,14 @@
 syntax = "proto3";
 
-option go_package = "github.com/ebpflabs/hyperion/protos";
+option go_package = "github.com/ebpflabs/hyperion/api/v1";
 
-package hyperion;
+package hyperion.api.v1;
 
 import "google/protobuf/any.proto";
 
-// Hyperion is the main service and describes the entire
-// gRPC API for the service
-service Hyperion {
+// HyperionAPIService is the main service and describes the entire
+// gRPC API for Hyperion
+service HyperionAPIService {
 	// Apply RPC will take in a apply request which can result in a creation
 	// of a hyperion module or updation of the module config
 	rpc Apply(ApplyRequest) returns (ApplyResponse);
