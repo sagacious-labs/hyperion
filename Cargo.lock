@@ -653,7 +653,6 @@ dependencies = [
 name = "hyperion"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-stream 0.2.1",
  "futures-core",
  "futures-util",

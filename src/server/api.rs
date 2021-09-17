@@ -1,15 +1,11 @@
-pub mod hyperion_api {
-    tonic::include_proto!("hyperion.api.v1");
-}
-
 use futures_core::Stream;
 use futures_util::StreamExt;
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
-use hyperion_api::hyperion_api_service_server::HyperionApiService as HyperionAPI;
-use hyperion_api::{
+use crate::proto::api::hyperion_api_service_server::HyperionApiService as HyperionAPI;
+use crate::proto::api::{
     ApplyRequest, ApplyResponse, DeleteRequest, DeleteResponse, GetRequest, GetResponse,
     ListRequest, WatchDataRequest, WatchDataResponse,
 };
@@ -56,7 +52,7 @@ impl HyperionAPI for HyperionAPIService {
 }
 
 impl HyperionAPIService {
-	pub fn new() -> Self {
-		HyperionAPIService {}
-	}
+    pub fn new() -> Self {
+        HyperionAPIService {}
+    }
 }

@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option go_package = "github.com/ebpflabs/hyperion/v1alpha1/base";
+
+package hyperion.v1alpha1.base;
+
+import "google/protobuf/any.proto";
+
+message Module {
+	ModuleCore core = 1;
+	ModuleMetadata metadata = 2;
+	ModuleSpec spec = 3;
+}
+
+message ModuleCore {
+	string version = 1;
+	string name = 2;
+	string namespace = 3;
+}
+
+message ModuleMetadata {
+	map<string, string> labels = 1;
+	string location = 2;
+	string sha256 = 3;
+}
+
+message ModuleSpec {
+	google.protobuf.Any wasm = 1;
+
+	oneof dataSource {
+		LabelSelector label = 2;
+		ModuleCore core = 3;
+	}
+}
+
+message LabelSelector {
+	map<string, string> selector = 1;
+}

@@ -1,8 +1,10 @@
 syntax = "proto3";
 
-option go_package = "github.com/ebpflabs/hyperion/api/v1";
+option go_package = "github.com/ebpflabs/hyperion/v1alpha1/api";
 
-package hyperion.api.v1;
+package hyperion.v1alpha1.api;
+
+import "protos/v1alpha1/base/base.proto";
 
 import "google/protobuf/any.proto";
 
@@ -34,14 +36,14 @@ service HyperionAPIService {
 //=================================== RPC COMPONENTS ======================================
 
 message ApplyRequest {
-	Module module = 1;
+	hyperion.v1alpha1.base.Module module = 1;
 }
 message ApplyResponse {
 	string msg = 1;
 }
 
 message DeleteRequest {
-	ModuleCore core = 1;
+	hyperion.v1alpha1.base.ModuleCore core = 1;
 }
 message DeleteResponse {
 	string msg = 1;
@@ -49,59 +51,24 @@ message DeleteResponse {
 
 message ListRequest {
 	oneof filter {
-		LabelSelector label = 1;
-		ModuleCore core = 2;
+		hyperion.v1alpha1.base.LabelSelector label = 1;
+		hyperion.v1alpha1.base.ModuleCore core = 2;
 	}
 }
 
 message GetRequest {
-	ModuleCore core = 1;
+	hyperion.v1alpha1.base.ModuleCore core = 1;
 }
 message GetResponse {
-	Module module = 1;
+	hyperion.v1alpha1.base.Module module = 1;
 }
 
 message WatchDataRequest {
 	oneof filter {
-		LabelSelector label = 1;
-		ModuleCore core = 2;
+		hyperion.v1alpha1.base.LabelSelector label = 1;
+		hyperion.v1alpha1.base.ModuleCore core = 2;
 	}
 }
 message WatchDataResponse {
 	google.protobuf.Any data = 1;
-}
-
-//=================================== METADATA COMPONENTS ======================================
-
-message LabelSelector {
-	map<string, string> selector = 1;
-}
-
-//=================================== CORE COMPONENTS ======================================
-
-message Module {
-	ModuleCore core = 1;
-	ModuleMetadata metadata = 2;
-	ModuleSpec spec = 3;
-}
-
-message ModuleCore {
-	string version = 1;
-	string name = 2;
-	string namespace = 3;
-}
-
-message ModuleMetadata {
-	map<string, string> labels = 1;
-	string location = 2;
-	string sha256 = 3;
-}
-
-message ModuleSpec {
-	google.protobuf.Any wasm = 1;
-
-	oneof dataSource {
-		LabelSelector label = 2;
-		ModuleCore core = 3;
-	}
 }

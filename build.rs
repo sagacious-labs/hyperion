@@ -1,9 +1,9 @@
 fn main() {
-    let file = "protos/api/v1/api.proto";
+    let files = ["protos/v1alpha1/api/api.proto"];
 
-    println!("Compiling {}...", file);
-    tonic_build::compile_protos(file).unwrap_or_else(|e| panic!("Failed to compile proto {:?}", e));
+    println!("Compiling {:?}...", files);
+    tonic_build::configure().compile(&files, &["."]).unwrap();
     println!("Completed");
 
-    println!("cargo:rerun-if-changed={}", file);
+    // println!("cargo:rerun-if-changed=protos");
 }
