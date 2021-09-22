@@ -7,7 +7,7 @@ use tokio::{spawn, sync::mpsc};
 /// model in the project
 pub struct Actor<T>
 where
-    T: Clone + Sync + Send,
+    T: Sync + Send,
 {
     receiver: Option<mpsc::Receiver<T>>,
     sender: Option<mpsc::Sender<T>>,
@@ -15,7 +15,7 @@ where
 
 impl<T> Actor<T>
 where
-    T: Clone + Sync + Send + 'static,
+    T: Sync + Send + 'static,
 {
     /// new will return a new instance of Actor struct
     pub fn new(buffer: usize) -> Self {
@@ -41,9 +41,9 @@ where
     ///
     /// The async task listens for messages received on the mpsc channel and invokes
     /// the async function passed as a parameter to the act function
-    pub fn act<U, S, F>(&mut self, func: F) -> Result<JoinHandle<()>, errors::RxError>
+    pub fn act<U, F>(&mut self, func: F) -> Result<JoinHandle<()>, errors::RxError>
     where
-        U: Future<Output = S> + Send,
+        U: Future<Output = ()> + Send,
         F: Sync + Send + 'static + Fn(T) -> U,
     {
         let mut rx = self.rx()?;
