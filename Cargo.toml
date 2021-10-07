@@ -18,7 +18,8 @@ tokio = {version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time
 tokio-stream = "0.1"
 tonic = "0.5"
 
-wasmtime = "0.29.0"
+wasmtime = "0.30.0"
+wasmtime-wasi = { version = "0.30.0", features = ["default", "tokio"] }
 
 [build-dependencies]
 tonic-build = "0.5"
