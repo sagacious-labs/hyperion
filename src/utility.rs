@@ -7,7 +7,7 @@ use crate::proto::base;
 pub fn module_core_key(md: &base::Module) -> Result<String, error::ModuleCoreKeyErr> {
     let core = md.core.as_ref().ok_or(error::ModuleCoreKeyErr)?;
 
-	Ok(format!("{}/{}/{}", core.namespace, core.name, core.version))
+    Ok(core.name.clone())
 }
 
 pub mod error {
@@ -19,4 +19,6 @@ pub mod error {
             write!(f, "invalid module: failed to create a key")
         }
     }
+
+    impl std::error::Error for ModuleCoreKeyErr {}
 }
