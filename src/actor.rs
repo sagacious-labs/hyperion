@@ -40,7 +40,6 @@ impl<T> Runner<T> {
     }
 }
 
-#[derive(Clone)]
 pub struct MailBox<T> {
     tx: mpsc::Sender<T>,
 }
@@ -54,6 +53,12 @@ impl<T> MailBox<T> {
         self.tx.send(msg).await.or(Err(error::MailError))?;
 
         Ok(())
+    }
+}
+
+impl<T> std::clone::Clone for MailBox<T> {
+    fn clone(&self) -> Self {
+        Self { tx: self.tx.clone() }
     }
 }
 
