@@ -9,28 +9,39 @@ import "google/protobuf/any.proto";
 message Module {
 	ModuleCore core = 1;
 	ModuleMetadata metadata = 2;
-	ModuleSpec spec = 3;
+	string uid = 3;
+	ModuleSpec spec = 4;
+	ModuleStatus status = 5;
 }
 
 message ModuleCore {
-	string version = 1;
-	string name = 2;
-	string namespace = 3;
+	string name = 1;
 }
 
 message ModuleMetadata {
+	message moduleRelease {
+		string location = 1;
+		string sha256 = 2;
+	}
+
 	map<string, string> labels = 1;
-	string location = 2;
-	string sha256 = 3;
+	oneof release {
+		moduleRelease linuxAMD64 = 2;
+		moduleRelease linuxARM64 = 3;
+	}
 }
 
 message ModuleSpec {
-	google.protobuf.Any wasm = 1;
+	google.protobuf.Any data = 1;
 
 	oneof dataSource {
 		LabelSelector label = 2;
 		ModuleCore core = 3;
 	}
+}
+
+message ModuleStatus {
+	string msg = 1;	
 }
 
 message LabelSelector {

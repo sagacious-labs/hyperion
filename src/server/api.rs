@@ -1,29 +1,32 @@
-use futures_core::Stream;
-use futures_util::StreamExt;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
+// use futures_core::Stream;
+// use futures_util::StreamExt;
+// use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
-use crate::proto::api::hyperion_api_service_server::HyperionApiService as HyperionAPI;
-use crate::proto::api::{
-    ApplyRequest, ApplyResponse, DeleteRequest, DeleteResponse, GetRequest, GetResponse,
-    ListRequest, WatchDataRequest, WatchDataResponse,
-};
+use crate::{actor, plugin::Command, proto::api::{
+    hyperion_api_service_server::HyperionApiService as HyperionAPI, ApplyRequest, ApplyResponse,
+    DeleteRequest, DeleteResponse, GetRequest, GetResponse, ListRequest, WatchDataRequest,
+    WatchDataResponse,
+}};
 
-pub struct HyperionAPIService;
+pub struct HyperionAPIService {
+    sender: mpsc::Sender<Command>
+}
 
 #[tonic::async_trait]
 impl HyperionAPI for HyperionAPIService {
     async fn apply(
         &self,
-        request: Request<ApplyRequest>,
+        _request: Request<ApplyRequest>,
     ) -> Result<Response<ApplyResponse>, Status> {
         todo!()
     }
 
     async fn delete(
         &self,
-        request: Request<DeleteRequest>,
+        _request: Request<DeleteRequest>,
     ) -> Result<Response<DeleteResponse>, Status> {
         todo!()
     }
@@ -32,12 +35,12 @@ impl HyperionAPI for HyperionAPIService {
 
     async fn list(
         &self,
-        request: Request<ListRequest>,
+        _request: Request<ListRequest>,
     ) -> Result<Response<Self::ListStream>, Status> {
         todo!()
     }
 
-    async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
+    async fn get(&self, _request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
         todo!()
     }
 
@@ -45,14 +48,14 @@ impl HyperionAPI for HyperionAPIService {
 
     async fn watch_data(
         &self,
-        request: Request<WatchDataRequest>,
+        _request: Request<WatchDataRequest>,
     ) -> Result<Response<Self::WatchDataStream>, Status> {
         todo!()
     }
 }
 
 impl HyperionAPIService {
-    pub fn new() -> Self {
-        HyperionAPIService {}
+    pub fn new(sender: mpsc::Sender<Command>) -> Self {
+        HyperionAPIService { sender }
     }
 }
