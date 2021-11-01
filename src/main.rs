@@ -1,9 +1,8 @@
-mod proto;
-mod wodular;
-mod store;
+#![allow(dead_code, unused_variables)]
 mod actor;
-mod woduler;
+mod proto;
 mod utility;
+mod woduler;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
