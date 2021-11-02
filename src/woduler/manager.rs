@@ -23,6 +23,13 @@ pub struct Manager {
 }
 
 impl Manager {
+    pub fn new() -> Self {
+        Self {
+            event_manager: event::Manager::new(),
+            modules: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
     async fn handle_apply(&mut self, md: base::Module, ch: oneshot::Sender<String>) {
         let key = utility::module_core_key(&md);
         if let Err(err) = &key {
