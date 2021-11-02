@@ -14,9 +14,6 @@ pub struct Bus {
 
 impl Bus {
     /// new returns a new instance of the event bus
-    ///
-    /// # Caveats
-    /// One event bus can be used to exchange messages of only one type
     pub fn new() -> Self {
         Self {
             subscribers: Arc::new(Mutex::new(HashMap::new())),

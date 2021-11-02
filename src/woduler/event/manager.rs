@@ -112,7 +112,7 @@ impl ModuleEventBus {
     pub fn recv_data(&mut self, tx: mpsc::Sender<Mail>) {
         let topics = self.input_topics.take();
         let mut bus = self.bus.clone();
-        let mut sids = Arc::clone(&self.sids);
+        let sids = Arc::clone(&self.sids);
 
         tokio::spawn(async move {
             let mut rxs = Vec::new();
