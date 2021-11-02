@@ -5,14 +5,18 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
-use crate::{actor, plugin::Command, proto::api::{
-    hyperion_api_service_server::HyperionApiService as HyperionAPI, ApplyRequest, ApplyResponse,
-    DeleteRequest, DeleteResponse, GetRequest, GetResponse, ListRequest, WatchDataRequest,
-    WatchDataResponse,
-}};
+use crate::{
+    actor,
+    proto::api::{
+        hyperion_api_service_server::HyperionApiService as HyperionAPI, ApplyRequest,
+        ApplyResponse, DeleteRequest, DeleteResponse, GetRequest, GetResponse, ListRequest,
+        WatchDataRequest, WatchDataResponse,
+    },
+    woduler::manager::command::Command,
+};
 
 pub struct HyperionAPIService {
-    sender: mpsc::Sender<Command>
+    mailbox: actor::MailBox<Command>,
 }
 
 #[tonic::async_trait]
@@ -55,7 +59,7 @@ impl HyperionAPI for HyperionAPIService {
 }
 
 impl HyperionAPIService {
-    pub fn new(sender: mpsc::Sender<Command>) -> Self {
-        HyperionAPIService { sender }
+    pub fn new(mailbox: actor::MailBox<Command>) -> Self {
+        HyperionAPIService { mailbox }
     }
 }
