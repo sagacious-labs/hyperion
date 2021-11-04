@@ -1,11 +1,13 @@
 #![allow(dead_code, unused_variables)]
-
-use actor::Actor;
 mod actor;
+mod config;
 mod proto;
 mod server;
 mod utility;
 mod woduler;
+
+use actor::Actor;
+use config::Config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,8 +18,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create api server
     server::start(server::Config {
-        host: "0.0.0.0",
-        port: "2310",
+        host: &Config::get_host(),
+        port: &Config::get_port(),
         mailbox: manager_mailbox,
     })
     .await?;
