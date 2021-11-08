@@ -41,7 +41,17 @@ impl Controller {
 
             while is_ok {
                 let bin = Self::setup_binary(&md).await;
-                if let Err(err) = &bin {}
+                if let Err(err) = &bin {
+                    let mut state = state.lock().await;
+                    state.set(State::Error(err.to_string()));
+
+                    // Exponential backoff
+                    tokio::time::sleep(std::time::Duration::from_secs(timeout)).await;
+                    timeout *= 2;
+
+                    continue;
+                }
+
                 let bin = bin.ok().unwrap();
 
                 let (stdout_tx, stdout_rx) = mpsc::channel(8);
@@ -136,12 +146,23 @@ impl Controller {
     }
 
     async fn setup_binary(md: &base::Module) -> Result<String> {
-        Ok(Self::dowload_binary(Self::get_binary_remote_location(md)?).await?)
+        let release = Self::get_binary_location(md)?;
+        let location = release.location.as_str();
+
+        if location.starts_with("file://") {
+            return Ok(location.strip_prefix("file://").unwrap().to_string());
+        }
+
+        if location.starts_with("http") {
+            return Self::dowload_binary(Self::get_binary_location(md)?).await;
+        }
+
+        Err(anyhow!(
+            "unsupported protocol - supported protocols for importing modules: \"file://\", \"http://\", \"https://\""
+        ))
     }
 
-    fn get_binary_remote_location(
-        md: &base::Module,
-    ) -> Result<&base::module_metadata::ModuleRelease> {
+    fn get_binary_location(md: &base::Module) -> Result<&base::module_metadata::ModuleRelease> {
         if let Some(metadata) = &md.metadata {
             if env::consts::OS == "linux" && env::consts::ARCH == "x86_64" {
                 if let Some(base::module_metadata::Release::LinuxAmd64(release)) = &metadata.release
