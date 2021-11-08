@@ -1,4 +1,6 @@
-use std::{env, io::Cursor, path::Path, process::ExitStatus, sync::Arc};
+mod state;
+
+use std::{env, io::Cursor, path::Path, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use tokio::{
@@ -7,16 +9,16 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use crate::proto::base;
+use super::{mail, Mail, Process};
+use crate::{proto::base, woduler::event::ModuleEventBus};
+use state::*;
 
-use super::{event::ModuleEventBus, process::Process};
-
-pub struct ProcessController {
+pub struct Controller {
     process_state: Arc<Mutex<ProcessState>>,
     cancel: Arc<Notify>,
 }
 
-impl ProcessController {
+impl Controller {
     pub fn new() -> Self {
         Self {
             process_state: Arc::new(Mutex::new(ProcessState::new())),
@@ -24,6 +26,10 @@ impl ProcessController {
         }
     }
 
+    /// run takes in a module definition and a module event bus and spins up a
+    /// process as defined in the module definition
+    ///
+    /// Module Event Bus is used to connect process streams to the main event bus
     pub fn run(&mut self, md: &base::Module, mut eb: ModuleEventBus) {
         let state = Arc::clone(&self.process_state);
         let cancel = self.cancel.clone();
@@ -34,24 +40,24 @@ impl ProcessController {
             let mut is_ok = true;
 
             while is_ok {
-                // Setup binary
                 let bin = Self::setup_binary(&md).await;
                 if let Err(err) = &bin {}
                 let bin = bin.ok().unwrap();
 
                 let (stdout_tx, stdout_rx) = mpsc::channel(8);
-                let (stderr_tx, stderr_rx) = mpsc::channel(8);
                 let (stdin_tx, stdin_rx) = mpsc::channel(8);
 
-                if let Ok(mut process) = Process::new(bin, stdout_tx, stderr_tx, stdin_rx) {
-                    // Set the state of the process
+                let (data_rx, log_rx) = Self::split_stdout(stdout_rx);
+
+                if let Ok(mut process) = Process::new(bin, stdout_tx, stdin_rx) {
                     {
                         let mut state = state.lock().await;
                         state.set(State::Running);
                     }
 
                     // Wire the process channels with the event bus
-                    eb.stream_data(stdout_rx);
+                    eb.stream_data(data_rx);
+                    eb.stream_logs(log_rx);
                     eb.recv_data(stdin_tx);
 
                     select! {
@@ -61,11 +67,24 @@ impl ProcessController {
                                     let mut state = state.lock().await;
                                     state.set(State::Exit(status));
                                 }
-                                Err(err) => {}
+                                Err(err) => {
+                                    let mut state = state.lock().await;
+                                    state.set(State::Error(err.to_string()));
+                                }
                             }
                         }
                         val = cancel.notified() => {
                             is_ok = false;
+                            match process.terminate().await {
+                                Ok(status) => {
+                                    let mut state = state.lock().await;
+                                    state.set(State::Exit(status));
+                                }
+                                Err(err) => {
+                                    let mut state = state.lock().await;
+                                    state.set(State::Error(err.to_string()));
+                                }
+                            }
                         }
                     }
 
@@ -82,8 +101,38 @@ impl ProcessController {
         });
     }
 
-    pub async fn stop(&self) {
+    /// stop will submit a stop request to the process controller but does not guarantee
+    /// immediate stoppage
+    pub fn stop(&self) {
         self.cancel.notify_one();
+    }
+
+    /// get_status returns status of the running process
+    pub async fn get_status(&self) -> String {
+        self.process_state.lock().await.to_string()
+    }
+
+    fn split_stdout(
+        mut stdout: mpsc::Receiver<Mail>,
+    ) -> (mpsc::Receiver<Mail>, mpsc::Receiver<Mail>) {
+        let (data_tx, data_rx) = mpsc::channel(8);
+        let (log_tx, log_rx) = mpsc::channel(8);
+
+        tokio::spawn(async move {
+            while let Some(mail) = stdout.recv().await {
+                match mail.typ {
+                    mail::Type::LOG => {
+                        log_tx.send(mail).await;
+                    }
+                    mail::Type::DATA => {
+                        data_tx.send(mail).await;
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        (data_rx, log_rx)
     }
 
     async fn setup_binary(md: &base::Module) -> Result<String> {
@@ -138,30 +187,4 @@ impl ProcessController {
 
         Ok(path)
     }
-}
-
-#[derive(Clone, Copy)]
-pub struct ProcessState {
-    state: State,
-}
-
-impl ProcessState {
-    pub fn new() -> Self {
-        Self { state: State::Init }
-    }
-
-    pub fn set(&mut self, state: State) {
-        self.state = state;
-    }
-
-    pub fn get(&self) -> State {
-        self.state
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum State {
-    Init,
-    Running,
-    Exit(ExitStatus),
 }

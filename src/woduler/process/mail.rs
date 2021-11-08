@@ -17,9 +17,9 @@ pub const MAIL_PAYLOAD_SIZE: usize = std::mem::size_of::<u64>();
 /// fails to be parsed into `Mail` then the message should be dropped.
 #[derive(Clone)]
 pub struct Mail {
-    typ: u8,
-    size: u64,
-    data: Vec<u8>,
+    pub typ: u8,
+    pub size: u64,
+    pub data: Vec<u8>,
 }
 
 impl Mail {
@@ -79,6 +79,6 @@ impl Mail {
 }
 
 pub mod Type {
-    const LOG: u8 = 0;
-    const DATA: u8 = 1;
+    pub const LOG: u8 = 0;
+    pub const DATA: u8 = 1;
 }
