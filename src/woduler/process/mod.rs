@@ -1,6 +1,7 @@
 pub mod mail;
 
-use std::process::ExitStatus;
+use nix::sys::signal::{self, Signal};
+use nix::unistd::Pid;
 use tokio::{
     io::{AsyncRead, AsyncWriteExt, BufReader},
     process,
@@ -8,6 +9,8 @@ use tokio::{
 };
 
 use mail::Mail;
+use std::convert::TryInto;
+use std::process::ExitStatus;
 
 pub struct Process {
     bin: String,
@@ -64,8 +67,38 @@ impl Process {
         self.child.wait().await
     }
 
+    /// terminate sends `SIGINT` to the child process and waits for the process
+    /// to die. `terminate` should be preferred over `kill` as it allows the child
+    /// process to perform cleanups
+    ///
+    /// # Caveats
+    /// - terminate assumes the environment is *nix
+    /// - terminate will drop the `stdin` of the child process **if** it hasn't been
+    /// taken earlier
+    pub async fn terminate(&mut self) -> anyhow::Result<ExitStatus> {
+        match self.child.id() {
+            Some(pid) => {
+                let res = signal::kill(Pid::from_raw(pid.try_into().unwrap()), signal::SIGINT);
+
+                match res {
+                    Ok(()) => {
+                        // Wait for the process to die
+                        self.child
+                            .wait()
+                            .await
+                            .map_err(|err| anyhow::anyhow!("{}", err))
+                    }
+                    Err(err) => Err(anyhow::anyhow!("failed to terminate process: {}", err)),
+                }
+            }
+            _ => Err(anyhow::anyhow!(
+                "failed to get process id of the child process"
+            )),
+        }
+    }
+
     /// kill will kill the child process
-    pub async fn kill(&mut self) -> std::io::Result<()> {
+    pub async fn kill(&mut self) -> anyhow::Result<()> {
         Ok(self.child.kill().await?)
     }
 
