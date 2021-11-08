@@ -9,7 +9,7 @@ use crate::proto::{api, base};
 use crate::utility;
 
 use super::event;
-use super::process_controller::ProcessController;
+use super::process::Controller as ProcessController;
 
 /// Manager is an actor and exposes the API of woduler
 /// to other parts of Hyperion
@@ -44,7 +44,7 @@ impl Manager {
                 // Dumb implementation for now - No matter what, delete older version and load another
 
                 // Stop the previous controller
-                controller.stop().await;
+                controller.stop();
 
                 // Drop the controller - hence clearing up the resources acquired by it
                 locked.remove(&key);
@@ -87,7 +87,7 @@ impl Manager {
         // Delete the module from the store
         if let Some((module, pc)) = modules.remove(&key) {
             // Instruct the process controller to shut down the process
-            pc.stop().await;
+            pc.stop();
         }
 
         ch.send(format!("deleted {}", md.name));
