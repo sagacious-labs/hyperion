@@ -131,8 +131,13 @@ impl Manager {
         let key = core.name;
         let modules = self.modules.lock().await;
 
-        if let Some((module, _)) = modules.get(&key) {
-            ch.send(module.clone());
+        if let Some((module, pc)) = modules.get(&key) {
+            let mut module = module.clone();
+            module.status = Some(base::ModuleStatus {
+                msg: pc.get_status().await,
+            });
+
+            ch.send(module);
         }
     }
 }
