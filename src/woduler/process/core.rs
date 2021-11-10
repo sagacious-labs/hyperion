@@ -11,7 +11,6 @@ use std::convert::TryInto;
 use std::process::ExitStatus;
 
 pub struct Process {
-    bin: String,
     child: process::Child,
 }
 
@@ -25,7 +24,7 @@ impl Process {
         stdout: mpsc::Sender<Mail>,
         mut stdin: mpsc::Receiver<Mail>,
     ) -> anyhow::Result<Self> {
-        let mut process = process::Command::new(bin.clone())
+        let mut process = process::Command::new(bin)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null())
@@ -44,10 +43,7 @@ impl Process {
             }
         });
 
-        Ok(Self {
-            bin,
-            child: process,
-        })
+        Ok(Self { child: process })
     }
 
     /// wait_on_child will lock the child process instance and will wait for the
@@ -107,7 +103,9 @@ impl Process {
                 Ok(mail) => {
                     let _ = mailbox.send(mail).await;
                 }
-                Err(e) => (),
+                Err(e) => {
+                    println!("failed to observe process stream: {}", e);
+                }
             }
         }
     }
