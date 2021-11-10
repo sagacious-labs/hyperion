@@ -16,6 +16,11 @@ impl Manager {
         Self { bus: Bus::new() }
     }
 
+    /// bus returns reference to the internal bus instance
+    pub fn bus(&mut self) -> &mut Bus {
+        &mut self.bus
+    }
+
     /// register_module takes in reference to a module config
     /// and will return an instance of ModuleEventBus which will
     /// provide helper functions to the caller for streaming
@@ -29,12 +34,18 @@ impl Manager {
         )
     }
 
+    /// generate_topic takes in type of the topic, key and value and returns
+    /// a topic for the given key and value
+    pub fn generate_topic(typ: &str, key: &str, value: &str) -> String {
+        format!("{}={}.{}", key, value, typ)
+    }
+
     fn create_log_topics(md: &base::Module) -> Vec<String> {
         match &md.metadata {
             Some(metadata) => metadata
                 .labels
                 .iter()
-                .map(|(k, v)| format!("{}={}.log", k, v))
+                .map(|(k, v)| Manager::generate_topic("log", k, v))
                 .collect(),
             None => Vec::new(),
         }
@@ -45,7 +56,7 @@ impl Manager {
             Some(metadata) => metadata
                 .labels
                 .iter()
-                .map(|(k, v)| format!("{}={}.data", k, v))
+                .map(|(k, v)| Manager::generate_topic("data", k, v))
                 .collect(),
             None => Vec::new(),
         }
@@ -60,7 +71,7 @@ impl Manager {
                 {
                     selector
                         .iter()
-                        .map(|(k, v)| format!("{}={}.data", k, v))
+                        .map(|(k, v)| Manager::generate_topic("data", k, v))
                         .collect()
                 } else {
                     Vec::new()
