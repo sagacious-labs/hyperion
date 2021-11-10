@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use tokio::sync::{mpsc, oneshot, Mutex};
 
 use crate::actor::Actor;
@@ -30,13 +30,22 @@ impl Manager {
         }
     }
 
-    async fn handle_apply(&mut self, md: base::Module, ch: oneshot::Sender<String>) {
+    async fn handle_apply(&mut self, mut md: base::Module, ch: oneshot::Sender<Result<String>>) {
         let key = utility::module_core_key(&md);
         if let Err(err) = &key {
-            ch.send(err.to_string());
+            if ch.send(Err(anyhow::anyhow!("{}", err))).is_err() {
+                println!("failed to send data to caller");
+            }
             return;
         }
         let key = key.ok().take().unwrap();
+
+        if let Err(err) = Self::setup_defaults(&mut md, key.clone()) {
+            if let Err(err) = ch.send(Err(err)) {
+                println!("failed to send data to caller");
+            }
+            return;
+        }
 
         let mut locked = self.modules.lock().await;
         match locked.get(&key) {
@@ -76,10 +85,12 @@ impl Manager {
             }
         }
 
-        ch.send(format!("applied {}", key));
+        if ch.send(Ok(format!("applied {}", key))).is_err() {
+            println!("failed to send data to caller");
+        }
     }
 
-    async fn handle_delete(&mut self, md: base::ModuleCore, ch: oneshot::Sender<String>) {
+    async fn handle_delete(&mut self, md: base::ModuleCore, ch: oneshot::Sender<Result<String>>) {
         let key = md.name.clone();
 
         let mut modules = self.modules.lock().await;
@@ -88,9 +99,17 @@ impl Manager {
         if let Some((module, pc)) = modules.remove(&key) {
             // Instruct the process controller to shut down the process
             pc.stop();
+
+            if ch.send(Ok(format!("deleted {}", key))).is_err() {
+                println!("failed to send data to caller")
+            }
+
+            return;
         }
 
-        ch.send(format!("deleted {}", md.name));
+        if ch.send(Err(anyhow!("{} not found", key))).is_err() {
+            println!("failed to send data to caller")
+        }
     }
 
     async fn handle_list(&self, filter: api::list_request::Filter, ch: mpsc::Sender<base::Module>) {
@@ -100,7 +119,9 @@ impl Manager {
 
                 let modules = self.modules.lock().await;
                 if let Some((module, _)) = modules.get(&key) {
-                    ch.send(module.clone()).await;
+                    if let Err(err) = ch.send(module.clone()).await {
+                        println!("failed to send data to caller: {}", err)
+                    }
                 }
             }
             api::list_request::Filter::Label(label) => {
@@ -119,15 +140,15 @@ impl Manager {
                         }
                     }
 
-                    if matches == label.selector.len() {
-                        ch.send(module.clone()).await;
+                    if matches == label.selector.len() && ch.send(module.clone()).await.is_err() {
+                        println!("failed to send data to caller")
                     }
                 }
             }
         }
     }
 
-    async fn handle_get(&self, core: base::ModuleCore, ch: oneshot::Sender<base::Module>) {
+    async fn handle_get(&self, core: base::ModuleCore, ch: oneshot::Sender<Result<base::Module>>) {
         let key = core.name;
         let modules = self.modules.lock().await;
 
@@ -137,8 +158,86 @@ impl Manager {
                 msg: pc.get_status().await,
             });
 
-            ch.send(module);
+            if ch.send(Ok(module)).is_err() {
+                println!("failed to send data to the caller")
+            }
+
+            return;
         }
+
+        if ch
+            .send(Err(anyhow::anyhow!(
+                "module with key \"{}\" not found",
+                key
+            )))
+            .is_err()
+        {
+            println!("failed to send data to the caller");
+        }
+    }
+
+    async fn handle_watch_data(&mut self, core: base::ModuleCore, ch: mpsc::Sender<Vec<u8>>) {
+        let key = core.name;
+        let topic = event::Manager::generate_topic("data", "core.hyperion.io/app", &key);
+        let mut bus = self.event_manager.bus().clone();
+
+        let (sid, mut recv) = bus.subscribe(topic.clone()).await;
+
+        tokio::spawn(async move {
+            // Keep listening to the data coming from the bus
+            while let Some(data) = recv.recv().await {
+                if ch.send(data.data).await.is_err() {
+                    println!("failed to send data to the caller - will closing subscription");
+                    break;
+                }
+            }
+
+            // Close the subscription
+            bus.unsubscribe(&topic, sid).await;
+        });
+    }
+
+    async fn handle_watch_log(&mut self, core: base::ModuleCore, ch: mpsc::Sender<Vec<u8>>) {
+        let key = core.name;
+        let topic = event::Manager::generate_topic("log", "core.hyperion.io/app", &key);
+        let mut bus = self.event_manager.bus().clone();
+
+        let (sid, mut recv) = bus.subscribe(topic.clone()).await;
+
+        tokio::spawn(async move {
+            // Keep listening to the data coming from the bus
+            while let Some(data) = recv.recv().await {
+                if ch.send(data.data).await.is_err() {
+                    println!("failed to send data to the caller - will closing subscription");
+                    break;
+                }
+            }
+
+            // Close the subscription
+            bus.unsubscribe(&topic, sid).await;
+        });
+    }
+
+    fn setup_defaults(md: &mut base::Module, name: String) -> Result<()> {
+        let mdc = md.clone();
+
+        match &mut md.metadata {
+            Some(metadata) => {
+                let (k, v) = Self::get_module_name_label(&mdc);
+                metadata.labels.insert(k, v);
+            }
+            None => {
+                return Err(anyhow!("invalid module - metadata cannot be empty"));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_module_name_label(md: &base::Module) -> (String, String) {
+        let res = utility::module_core_key(md).unwrap();
+
+        ("core.hyperion.io/app".to_string(), res)
     }
 }
 
@@ -171,6 +270,12 @@ impl Actor for Manager {
                 command::Command::Get(core, res) => {
                     m.handle_get(core, res).await;
                 }
+                command::Command::WatchData(core, res) => {
+                    m.handle_watch_data(core, res).await;
+                }
+                command::Command::WatchLog(core, res) => {
+                    m.handle_watch_log(core, res).await;
+                }
                 _ => {}
             }
         });
@@ -181,17 +286,20 @@ pub mod command {
     use tokio::sync::{mpsc, oneshot};
 
     pub enum Command {
-        Apply(super::base::Module, oneshot::Sender<String>),
-        Delete(super::base::ModuleCore, oneshot::Sender<String>),
+        Apply(super::base::Module, oneshot::Sender<anyhow::Result<String>>),
+        Delete(
+            super::base::ModuleCore,
+            oneshot::Sender<anyhow::Result<String>>,
+        ),
         List(
             super::api::list_request::Filter,
             mpsc::Sender<super::base::Module>,
         ),
         Get(
             super::base::ModuleCore,
-            oneshot::Sender<super::base::Module>,
+            oneshot::Sender<anyhow::Result<super::base::Module>>,
         ),
-        WatchData(super::api::list_request::Filter, mpsc::Sender<Vec<u8>>),
-        WatchLog(super::api::list_request::Filter, mpsc::Sender<Vec<u8>>),
+        WatchData(super::base::ModuleCore, mpsc::Sender<Vec<u8>>),
+        WatchLog(super::base::ModuleCore, mpsc::Sender<Vec<u8>>),
     }
 }
