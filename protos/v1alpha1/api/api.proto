@@ -31,6 +31,11 @@ service HyperionAPIService {
 	// OR can specify core module data like name, version, namespace etc. and will get data for the 
 	// modules that match the filters
 	rpc WatchData(WatchDataRequest) returns (stream WatchDataResponse);
+
+	// WatchData RPC will will take a list request which can EITHER specify a label based selectors
+	// OR can specify core module data like name, version, namespace etc. and will get data for the 
+	// modules that match the filters
+	rpc WatchLog(WatchLogRequest) returns (stream WatchLogResponse);
 }
 
 //=================================== RPC COMPONENTS ======================================
@@ -64,11 +69,15 @@ message GetResponse {
 }
 
 message WatchDataRequest {
-	oneof filter {
-		hyperion.v1alpha1.base.LabelSelector label = 1;
-		hyperion.v1alpha1.base.ModuleCore core = 2;
-	}
+	hyperion.v1alpha1.base.ModuleCore filter = 1;
 }
 message WatchDataResponse {
-	google.protobuf.Any data = 1;
+	bytes data = 1;
+}
+
+message WatchLogRequest {
+	hyperion.v1alpha1.base.ModuleCore filter = 1;
+}
+message WatchLogResponse {
+	bytes data = 1;
 }

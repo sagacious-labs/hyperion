@@ -32,7 +32,7 @@ message ModuleMetadata {
 }
 
 message ModuleSpec {
-	google.protobuf.Any data = 1;
+	string data = 1;
 
 	oneof dataSource {
 		LabelSelector label = 2;
