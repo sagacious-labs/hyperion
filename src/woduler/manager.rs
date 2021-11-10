@@ -41,7 +41,7 @@ impl Manager {
         let key = key.ok().take().unwrap();
 
         if let Err(err) = Self::setup_defaults(&mut md, key.clone()) {
-            if let Err(err) = ch.send(Err(err)) {
+            if ch.send(Err(err)).is_err() {
                 println!("failed to send data to caller");
             }
             return;
@@ -49,7 +49,7 @@ impl Manager {
 
         let mut locked = self.modules.lock().await;
         match locked.get(&key) {
-            Some((module, controller)) => {
+            Some((_, controller)) => {
                 // Dumb implementation for now - No matter what, delete older version and load another
 
                 // Stop the previous controller
@@ -96,7 +96,7 @@ impl Manager {
         let mut modules = self.modules.lock().await;
 
         // Delete the module from the store
-        if let Some((module, pc)) = modules.remove(&key) {
+        if let Some((_, pc)) = modules.remove(&key) {
             // Instruct the process controller to shut down the process
             pc.stop();
 
@@ -178,7 +178,8 @@ impl Manager {
 
     async fn handle_watch_data(&mut self, core: base::ModuleCore, ch: mpsc::Sender<Vec<u8>>) {
         let key = core.name;
-        let topic = event::Manager::generate_topic("data", "core.hyperion.io/app", &key);
+        let label = Self::get_module_name_label(&key);
+        let topic = event::Manager::generate_topic("data", &label.0, &label.1);
         let mut bus = self.event_manager.bus().clone();
 
         let (sid, mut recv) = bus.subscribe(topic.clone()).await;
@@ -219,11 +220,9 @@ impl Manager {
     }
 
     fn setup_defaults(md: &mut base::Module, name: String) -> Result<()> {
-        let mdc = md.clone();
-
         match &mut md.metadata {
             Some(metadata) => {
-                let (k, v) = Self::get_module_name_label(&mdc);
+                let (k, v) = Self::get_module_name_label(&name);
                 metadata.labels.insert(k, v);
             }
             None => {
@@ -234,10 +233,8 @@ impl Manager {
         Ok(())
     }
 
-    fn get_module_name_label(md: &base::Module) -> (String, String) {
-        let res = utility::module_core_key(md).unwrap();
-
-        ("core.hyperion.io/app".to_string(), res)
+    fn get_module_name_label(module_name: &str) -> (String, String) {
+        ("core.hyperion.io/app".to_string(), module_name.to_string())
     }
 }
 
@@ -276,7 +273,6 @@ impl Actor for Manager {
                 command::Command::WatchLog(core, res) => {
                     m.handle_watch_log(core, res).await;
                 }
-                _ => {}
             }
         });
     }

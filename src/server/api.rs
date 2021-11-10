@@ -223,7 +223,7 @@ impl HyperionAPI for HyperionAPIService {
             let (tx, mut rx) = mpsc::channel(8);
             if let Err(e) = self
                 .mailbox
-                .mail(command::Command::WatchData(filter, tx))
+                .mail(command::Command::WatchLog(filter, tx))
                 .await
             {
                 return Err(tonic::Status::new(
