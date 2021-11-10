@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_variables)]
 mod actor;
 mod config;
 mod proto;
