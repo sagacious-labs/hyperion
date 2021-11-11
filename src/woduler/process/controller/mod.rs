@@ -131,10 +131,10 @@ impl Controller {
         tokio::spawn(async move {
             while let Some(mail) = stdout.recv().await {
                 match mail.typ {
-                    mail::Type::LOG => {
+                    mail::data_type::LOG => {
                         log_tx.send(mail).await;
                     }
-                    mail::Type::DATA => {
+                    mail::data_type::DATA => {
                         data_tx.send(mail).await;
                     }
                     _ => {}

@@ -78,7 +78,7 @@ impl Mail {
     }
 }
 
-pub mod Type {
+pub mod data_type {
     pub const LOG: u8 = 0;
     pub const DATA: u8 = 1;
 }
