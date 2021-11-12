@@ -224,6 +224,9 @@ impl Manager {
             Some(metadata) => {
                 let (k, v) = Self::get_module_name_label(&name);
                 metadata.labels.insert(k, v);
+                metadata
+                    .labels
+                    .insert("core.hyperion.io/type".to_string(), "module".to_string());
             }
             None => {
                 return Err(anyhow!("invalid module - metadata cannot be empty"));
