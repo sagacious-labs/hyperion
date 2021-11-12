@@ -162,37 +162,53 @@ impl Controller {
         ))
     }
 
-    fn get_binary_location(md: &base::Module) -> Result<&base::module_metadata::ModuleRelease> {
+    fn get_binary_location(
+        md: &base::Module,
+    ) -> Result<&base::module_metadata::releases::ModuleRelease> {
         if let Some(metadata) = &md.metadata {
-            if env::consts::OS == "linux" && env::consts::ARCH == "x86_64" {
-                if let Some(base::module_metadata::Release::LinuxAmd64(release)) = &metadata.release
-                {
-                    return Ok(release);
-                } else {
-                    return Err(anyhow!("no release info found for LinuxAmd64"));
+            match &metadata.release {
+                Some(base::module_metadata::Releases {
+                    linux_amd64,
+                    linux_arm64,
+                }) => {
+                    if env::consts::OS == "linux" && env::consts::ARCH == "x86_64" {
+                        match linux_amd64 {
+                            Some(module) => {
+                                return Ok(module);
+                            }
+                            None => {
+                                return Err(anyhow!("no release info found for LinuxAmd64"));
+                            }
+                        }
+                    } else if env::consts::OS == "linux" && env::consts::ARCH == "aarch64" {
+                        match linux_arm64 {
+                            Some(module) => {
+                                return Ok(module);
+                            }
+                            None => {
+                                return Err(anyhow!("no release info found for LinuxArm64"));
+                            }
+                        }
+                    } else {
+                        return Err(anyhow!(
+                            "OS: \"{}\" Arch: \"{}\" is not supported",
+                            env::consts::OS,
+                            env::consts::ARCH
+                        ));
+                    }
+                }
+                None => {
+                    return Err(anyhow!("module releases is a required property"));
                 }
             }
-
-            if env::consts::OS == "linux" && env::consts::ARCH == "aarch64" {
-                if let Some(base::module_metadata::Release::LinuxArm64(release)) = &metadata.release
-                {
-                    return Ok(release);
-                } else {
-                    return Err(anyhow!("no release info found for LinuxArm64"));
-                }
-            }
-
-            return Err(anyhow!(
-                "OS: \"{}\" Arch: \"{}\" is not supported",
-                env::consts::OS,
-                env::consts::ARCH
-            ));
         }
 
         Err(anyhow!("module metadata not found"))
     }
 
-    async fn dowload_binary(remote: &base::module_metadata::ModuleRelease) -> Result<String> {
+    async fn dowload_binary(
+        remote: &base::module_metadata::releases::ModuleRelease,
+    ) -> Result<String> {
         let res = reqwest::get(&remote.location).await?;
 
         let path = Path::new(&env::temp_dir())

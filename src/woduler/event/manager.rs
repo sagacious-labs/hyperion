@@ -65,11 +65,12 @@ impl Manager {
     fn create_input_topics(md: &base::Module) -> Vec<String> {
         match &md.spec {
             Some(spec) => {
-                if let Some(base::module_spec::DataSource::Label(base::LabelSelector {
-                    selector,
-                })) = &spec.data_source
+                if let Some(base::module_spec::DataSource {
+                    label: Some(labels_selector),
+                }) = &spec.data_source
                 {
-                    selector
+                    labels_selector
+                        .selector
                         .iter()
                         .map(|(k, v)| Manager::generate_topic("data", k, v))
                         .collect()
