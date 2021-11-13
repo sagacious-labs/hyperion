@@ -9,7 +9,7 @@ pub const MAIL_PAYLOAD_SIZE: usize = std::mem::size_of::<u64>();
 /// the child process.
 ///
 /// The exchange format is based on `TLV` format, where T can be part of the data,
-/// L is represented by the `size` and should be the first 4 bytes of the data that is read (hence
+/// L is represented by the `size` and should be the first 8 bytes of the data that is read (hence
 /// the total size is 64 bits) and V is represented by the `data` and MUST be of the same length as
 /// mentioned in the `data` attribute.
 ///
@@ -64,7 +64,7 @@ impl Mail {
                     if n < MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
                         continue;
                     }
-                    let payload_size = u64::from_be_bytes(
+                    let payload_size = u64::from_le_bytes(
                         data[MAIL_TYPE_SIZE..MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE]
                             .try_into()
                             .unwrap(),
