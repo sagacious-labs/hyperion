@@ -83,8 +83,9 @@ impl Controller {
                                 }
                             }
                         }
-                        val = cancel.notified() => {
+                        _ = cancel.notified() => {
                             is_ok = false;
+                            log::debug!("received termination");
                             match process.terminate().await {
                                 Ok(status) => {
                                     let mut state = state.lock().await;

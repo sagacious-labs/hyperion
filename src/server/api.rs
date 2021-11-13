@@ -120,7 +120,7 @@ impl HyperionAPI for HyperionAPIService {
             tokio::spawn(async move {
                 while let Some(res) = rx.recv().await {
                     if let Err(err) = rtx.send(Ok(GetResponse { module: Some(res) })).await {
-                        println!("failed to pipe data to the output stream: {}", err);
+                        log::warn!("failed to pipe data to the output stream: {}", err);
                         break;
                     }
                 }
@@ -196,7 +196,7 @@ impl HyperionAPI for HyperionAPIService {
             tokio::spawn(async move {
                 while let Some(res) = rx.recv().await {
                     if let Err(err) = rtx.send(Ok(WatchDataResponse { data: res })).await {
-                        println!("failed to pipe data to the output stream: {}", err);
+                        log::warn!("failed to pipe data to the output stream: {}", err);
                         break;
                     }
                 }
@@ -236,7 +236,7 @@ impl HyperionAPI for HyperionAPIService {
             tokio::spawn(async move {
                 while let Some(res) = rx.recv().await {
                     if let Err(err) = rtx.send(Ok(WatchLogResponse { data: res })).await {
-                        println!("failed to pipe data to the output stream: {}", err);
+                        log::warn!("failed to pipe data to the output stream: {}", err);
                         break;
                     }
                 }

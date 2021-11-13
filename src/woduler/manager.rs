@@ -34,7 +34,7 @@ impl Manager {
         let key = utility::module_core_key(&md);
         if let Err(err) = &key {
             if ch.send(Err(anyhow::anyhow!("{}", err))).is_err() {
-                println!("failed to send data to caller");
+                log::warn!("failed to send data to caller");
             }
             return;
         }
@@ -42,7 +42,7 @@ impl Manager {
 
         if let Err(err) = Self::setup_defaults(&mut md, key.clone()) {
             if ch.send(Err(err)).is_err() {
-                println!("failed to send data to caller");
+                log::warn!("failed to send data to caller");
             }
             return;
         }
@@ -86,7 +86,7 @@ impl Manager {
         }
 
         if ch.send(Ok(format!("applied {}", key))).is_err() {
-            println!("failed to send data to caller");
+            log::warn!("failed to send data to caller");
         }
     }
 
@@ -101,14 +101,14 @@ impl Manager {
             pc.stop();
 
             if ch.send(Ok(format!("deleted {}", key))).is_err() {
-                println!("failed to send data to caller")
+                log::warn!("failed to send data to caller")
             }
 
             return;
         }
 
         if ch.send(Err(anyhow!("{} not found", key))).is_err() {
-            println!("failed to send data to caller")
+            log::warn!("failed to send data to caller")
         }
     }
 
@@ -120,7 +120,7 @@ impl Manager {
                 let modules = self.modules.lock().await;
                 if let Some((module, _)) = modules.get(&key) {
                     if let Err(err) = ch.send(module.clone()).await {
-                        println!("failed to send data to caller: {}", err)
+                        log::warn!("failed to send data to caller: {}", err)
                     }
                 }
             }
@@ -141,7 +141,7 @@ impl Manager {
                     }
 
                     if matches == label.selector.len() && ch.send(module.clone()).await.is_err() {
-                        println!("failed to send data to caller")
+                        log::warn!("failed to send data to caller")
                     }
                 }
             }
@@ -159,7 +159,7 @@ impl Manager {
             });
 
             if ch.send(Ok(module)).is_err() {
-                println!("failed to send data to the caller")
+                log::warn!("failed to send data to the caller")
             }
 
             return;
@@ -172,7 +172,7 @@ impl Manager {
             )))
             .is_err()
         {
-            println!("failed to send data to the caller");
+            log::warn!("failed to send data to the caller");
         }
     }
 
@@ -188,7 +188,7 @@ impl Manager {
             // Keep listening to the data coming from the bus
             while let Some(data) = recv.recv().await {
                 if ch.send(data.data).await.is_err() {
-                    println!("failed to send data to the caller - will closing subscription");
+                    log::warn!("failed to send data to the caller - will closing subscription");
                     break;
                 }
             }
@@ -209,7 +209,7 @@ impl Manager {
             // Keep listening to the data coming from the bus
             while let Some(data) = recv.recv().await {
                 if ch.send(data.data).await.is_err() {
-                    println!("failed to send data to the caller - will closing subscription");
+                    log::warn!("failed to send data to the caller - will closing subscription");
                     break;
                 }
             }

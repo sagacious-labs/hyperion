@@ -31,6 +31,8 @@ impl Process {
             .kill_on_drop(true)
             .spawn()?;
 
+        log::debug!("Spinning up new process");
+
         let cstdout = process.stdout.take().unwrap();
         tokio::spawn(async move {
             Process::observe(cstdout, stdout).await;
@@ -101,10 +103,17 @@ impl Process {
 
             match mail {
                 Ok(mail) => {
+                    if mail.size == 0 {
+                        log::debug!("stopping the observation...");
+                        return
+                    }
+
+                    log::debug!("Received data: {} {}", mail.typ, mail.size);
+
                     let _ = mailbox.send(mail).await;
                 }
                 Err(e) => {
-                    println!("failed to observe process stream: {}", e);
+                    log::error!("failed to observe process stream: {}", e);
                 }
             }
         }

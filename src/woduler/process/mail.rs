@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, time::Duration};
 
 use tokio::io::{AsyncBufRead, AsyncReadExt};
 
@@ -35,23 +35,29 @@ impl Mail {
     where
         T: AsyncBufRead + Unpin,
     {
-        // Read from the stream
         let mut data: Vec<u8> = Vec::new();
 
+        // Read from the stream
+        let mut buffer: Vec<u8> = vec![0; 128];
+
         loop {
-            let res = stream.read(&mut data).await;
+            let res = stream.read(&mut buffer).await;
 
             return match res {
-                Ok(_) => {
-                    // If no data has been read then it is useless - try to read more data
-                    if data.is_empty() {
-                        continue;
+                Ok(n) => {
+                    // If nothing is read then the process has probably died
+                    if n == 0 {
+                        return Ok(Self { typ: 0, size: 0, data: buffer });
                     }
+
+                    // Copy data to the local data store
+                    data.append(&mut buffer[..n].to_vec());
+
                     // If more than or equal to 1 byte are read then setup then setup the type of the read
                     let typ: u8 = data[0];
 
                     // If length is 5 bytes or more then safe to parse the size of the data or else retry
-                    if data.len() < MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
+                    if n < MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
                         continue;
                     }
                     let payload_size = u64::from_be_bytes(
@@ -61,7 +67,7 @@ impl Mail {
                     );
 
                     // Read till the payload_size
-                    if data.len() < payload_size as usize + MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
+                    if n < payload_size as usize + MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
                         continue;
                     }
                     let payload = &data[MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE..];

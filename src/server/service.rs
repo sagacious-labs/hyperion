@@ -21,7 +21,7 @@ pub async fn start(cfg: Config<'_>) -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = format!("{}:{}", cfg.host, cfg.port).parse()?;
 
-    println!("server listening on {}", addr);
+    log::info!("server listening on {}", addr);
 
     Server::builder().add_service(server).serve(addr).await?;
 

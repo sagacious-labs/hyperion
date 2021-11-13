@@ -10,6 +10,9 @@ use config::Config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Setup logger
+    env_logger::init();
+    
     // Create woduler manager
     let manager = woduler::manager::Manager::new();
     // Start the manager actor
