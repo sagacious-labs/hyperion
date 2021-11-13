@@ -54,7 +54,9 @@ impl Bus {
 
                 // Don't block the publish because of a slow consumer
                 tokio::spawn(async move {
-                    tx.send(data).await;
+                    if tx.send(data).await.is_err() {
+                        log::warn!("failed to send message to subscriber");
+                    }
                 });
             }
         }

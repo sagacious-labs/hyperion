@@ -13,10 +13,6 @@ impl ProcessState {
     pub fn set(&mut self, state: State) {
         self.state = state;
     }
-
-    pub fn get(&self) -> State {
-        self.state.clone()
-    }
 }
 
 impl std::string::ToString for ProcessState {

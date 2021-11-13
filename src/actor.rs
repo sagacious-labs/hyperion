@@ -16,7 +16,9 @@ pub trait Actor: Sized + Send + 'static {
         MailBox::new(tx)
     }
 
-    fn handle(&self, msg: Self::RxData) {
+    /// handle receives the message for the actor - if this method is
+    /// not implemented by default then the message is dropped
+    fn handle(&self, _msg: Self::RxData) {
         // Drop the message by default
     }
 }
@@ -58,7 +60,9 @@ impl<T> MailBox<T> {
 
 impl<T> std::clone::Clone for MailBox<T> {
     fn clone(&self) -> Self {
-        Self { tx: self.tx.clone() }
+        Self {
+            tx: self.tx.clone(),
+        }
     }
 }
 

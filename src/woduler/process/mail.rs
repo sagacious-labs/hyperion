@@ -1,4 +1,4 @@
-use std::{convert::TryInto, time::Duration};
+use std::convert::TryInto;
 
 use tokio::io::{AsyncBufRead, AsyncReadExt};
 
@@ -47,7 +47,11 @@ impl Mail {
                 Ok(n) => {
                     // If nothing is read then the process has probably died
                     if n == 0 {
-                        return Ok(Self { typ: 0, size: 0, data: buffer });
+                        return Ok(Self {
+                            typ: 0,
+                            size: 0,
+                            data: buffer,
+                        });
                     }
 
                     // Copy data to the local data store

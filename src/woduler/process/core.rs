@@ -87,11 +87,6 @@ impl Process {
         }
     }
 
-    /// kill will kill the child process
-    pub async fn kill(&mut self) -> anyhow::Result<()> {
-        Ok(self.child.kill().await?)
-    }
-
     /// observe takes in a `pipe` which is an object must implement `AsyncRead` and `Unpin` trait
     /// and takes in a `mailbox` which will be used to send the messages that are coming through
     /// the pipe
@@ -105,7 +100,7 @@ impl Process {
                 Ok(mail) => {
                     if mail.size == 0 {
                         log::debug!("stopping the observation...");
-                        return
+                        return;
                     }
 
                     log::debug!("Received data: {} {}", mail.typ, mail.size);

@@ -14,7 +14,7 @@ impl Config {
     pub fn get_any(key: &str, fallback: &str) -> String {
         match env::var(key) {
             Ok(res) => res,
-            Err(err) => fallback.to_owned(),
+            Err(_) => fallback.to_owned(),
         }
     }
 }

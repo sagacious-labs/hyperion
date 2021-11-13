@@ -30,6 +30,7 @@ impl HyperionAPI for HyperionAPIService {
         if let Some(module) = req.module {
             let (tx, rx) = oneshot::channel();
             if let Err(e) = self.mailbox.mail(command::Command::Apply(module, tx)).await {
+                log::error!("failed to communicate with woduler: {}", e);
                 return Err(tonic::Status::new(
                     tonic::Code::Internal,
                     "failed to proceess the request",
@@ -46,6 +47,7 @@ impl HyperionAPI for HyperionAPIService {
                     }
                 },
                 Err(e) => {
+                    log::error!("failed to receive response from woduler: {}", e);
                     return Err(tonic::Status::new(
                         tonic::Code::Internal,
                         "failed to process the request",
@@ -69,6 +71,7 @@ impl HyperionAPI for HyperionAPIService {
         if let Some(core) = req.core {
             let (tx, rx) = oneshot::channel();
             if let Err(e) = self.mailbox.mail(command::Command::Delete(core, tx)).await {
+                log::error!("failed to communicate with woduler: {}", e);
                 return Err(tonic::Status::new(
                     tonic::Code::Internal,
                     "failed to proceess the request",
@@ -85,6 +88,7 @@ impl HyperionAPI for HyperionAPIService {
                     }
                 },
                 Err(e) => {
+                    log::error!("failed to receive response from woduler: {}", e);
                     return Err(tonic::Status::new(
                         tonic::Code::Internal,
                         "failed to process the request",
@@ -110,6 +114,7 @@ impl HyperionAPI for HyperionAPIService {
         if let Some(filter) = req.filter {
             let (tx, mut rx) = mpsc::channel(8);
             if let Err(e) = self.mailbox.mail(command::Command::List(filter, tx)).await {
+                log::error!("failed to communicate with woduler: {}", e);
                 return Err(tonic::Status::new(
                     tonic::Code::Internal,
                     "failed to proceess the request",
@@ -141,6 +146,7 @@ impl HyperionAPI for HyperionAPIService {
         if let Some(core) = req.core {
             let (tx, rx) = oneshot::channel();
             if let Err(e) = self.mailbox.mail(command::Command::Get(core, tx)).await {
+                log::error!("failed to communicate with woduler: {}", e);
                 return Err(tonic::Status::new(
                     tonic::Code::Internal,
                     "failed to proceess the request",
@@ -157,6 +163,7 @@ impl HyperionAPI for HyperionAPIService {
                     }
                 },
                 Err(e) => {
+                    log::error!("failed to receive response from woduler: {}", e);
                     return Err(tonic::Status::new(
                         tonic::Code::Internal,
                         "failed to process the request",
@@ -186,6 +193,7 @@ impl HyperionAPI for HyperionAPIService {
                 .mail(command::Command::WatchData(filter, tx))
                 .await
             {
+                log::error!("failed to communicate with woduler: {}", e);
                 return Err(tonic::Status::new(
                     tonic::Code::Internal,
                     "failed to proceess the request",
@@ -226,6 +234,7 @@ impl HyperionAPI for HyperionAPIService {
                 .mail(command::Command::WatchLog(filter, tx))
                 .await
             {
+                log::error!("failed to communicate with woduler: {}", e);
                 return Err(tonic::Status::new(
                     tonic::Code::Internal,
                     "failed to proceess the request",

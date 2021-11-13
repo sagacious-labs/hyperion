@@ -133,10 +133,18 @@ impl Controller {
             while let Some(mail) = stdout.recv().await {
                 match mail.typ {
                     mail::data_type::LOG => {
-                        log_tx.send(mail).await;
+                        if log_tx.send(mail).await.is_err() {
+                            log::error!(
+                                "failed to direct message of type: \"log\" to the listener"
+                            );
+                        }
                     }
                     mail::data_type::DATA => {
-                        data_tx.send(mail).await;
+                        if data_tx.send(mail).await.is_err() {
+                            log::error!(
+                                "failed to direct message of type: \"data\" to the listener"
+                            );
+                        }
                     }
                     _ => {}
                 }

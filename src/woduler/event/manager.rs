@@ -141,7 +141,9 @@ impl ModuleEventBus {
 
                     tokio::spawn(async move {
                         while let Some(mail) = rx.recv().await {
-                            tx.send(mail).await;
+                            if tx.send(mail).await.is_err() {
+                                log::warn!("failed to send message to the process pipe");
+                            }
                         }
                     });
                 }
