@@ -25,6 +25,12 @@ impl Bus {
         // Create ID for this subscription
         let id = Uuid::new_v4().as_u128();
 
+        log::debug!(
+            "subscription requested for topic: {} - acquired sid: {}",
+            topic,
+            id
+        );
+
         // Create channel for the subscription
         let (tx, rx) = mpsc::channel(8);
 
@@ -48,9 +54,11 @@ impl Bus {
     pub async fn publish(&mut self, topic: &str, data: Mail) {
         let mut locked = self.subscribers.lock().await;
         if let Some(subs_grp) = locked.get_mut(topic) {
-            for (_, v) in subs_grp.iter() {
+            for (id, v) in subs_grp.iter() {
                 let tx = v.clone();
                 let data = data.clone();
+
+                log::debug!("publishing data for topic: {} to sid: {}", topic, id);
 
                 // Don't block the publish because of a slow consumer
                 tokio::spawn(async move {
@@ -68,6 +76,12 @@ impl Bus {
         let mut locked = self.subscribers.lock().await;
         let mut abandoned_topic = false;
 
+        log::debug!(
+            "requested unsubscribe for topic: {} by sid: {}",
+            topic,
+            sub_id
+        );
+
         if let Some(subs_grp) = locked.get_mut(topic) {
             subs_grp.remove(&sub_id);
             abandoned_topic = subs_grp.is_empty();
@@ -75,6 +89,11 @@ impl Bus {
 
         // If there are no subscribers for this topic then delete the entry to prevent memory leakage
         if abandoned_topic {
+            log::debug!(
+                "unsubscribe of topic: {} by sid: {} lead to topic abandonment - removing topic",
+                topic,
+                sub_id
+            );
             locked.remove(topic);
         }
     }

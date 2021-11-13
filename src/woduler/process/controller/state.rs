@@ -24,6 +24,7 @@ impl std::string::ToString for ProcessState {
 #[derive(Clone)]
 pub enum State {
     Init,
+    InitCrashLoopBackOff,
     Running,
     Error(String),
     Exit(ExitStatus),
@@ -33,6 +34,7 @@ impl std::string::ToString for State {
     fn to_string(&self) -> String {
         match &self {
             Self::Init => "Init".to_string(),
+            Self::InitCrashLoopBackOff => "InitCrashLoopBackoff".to_string(),
             Self::Running => "Running".to_string(),
             Self::Exit(status) => format!("Exit: {}", status),
             Self::Error(err) => err.clone(),

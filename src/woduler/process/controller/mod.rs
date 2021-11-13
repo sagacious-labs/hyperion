@@ -40,10 +40,14 @@ impl Controller {
             let mut is_ok = true;
 
             while is_ok {
+                log::debug!("starting process");
+
                 let bin = Self::setup_binary(&md).await;
                 if let Err(err) = &bin {
                     let mut state = state.lock().await;
                     state.set(State::Error(err.to_string()));
+
+                    log::error!("failed to setup process binary: {}", err);
 
                     // Exponential backoff
                     tokio::time::sleep(std::time::Duration::from_secs(timeout)).await;
@@ -53,6 +57,8 @@ impl Controller {
                 }
 
                 let bin = bin.ok().unwrap();
+
+                log::debug!("setup process binary at: {}", bin);
 
                 let (stdout_tx, stdout_rx) = mpsc::channel(8);
                 let (stdin_tx, stdin_rx) = mpsc::channel(8);
@@ -64,6 +70,8 @@ impl Controller {
                         let mut state = state.lock().await;
                         state.set(State::Running);
                     }
+
+                    log::debug!("Process started");
 
                     // Wire the process channels with the event bus
                     eb.stream_data(data_rx);
@@ -85,7 +93,9 @@ impl Controller {
                         }
                         _ = cancel.notified() => {
                             is_ok = false;
-                            log::debug!("received termination");
+
+                            log::debug!("received process termination");
+
                             match process.terminate().await {
                                 Ok(status) => {
                                     let mut state = state.lock().await;
@@ -102,7 +112,9 @@ impl Controller {
                     // Cleanup the module event bus
                     eb.cleanup().await;
                 } else {
-                    todo!()
+                    log::error!("failed to startup process - init crashed");
+                    let mut state = state.lock().await;
+                    state.set(State::InitCrashLoopBackOff);
                 }
 
                 // Exponential backoff
