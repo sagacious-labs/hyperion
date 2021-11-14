@@ -92,9 +92,10 @@ impl Process {
     /// the pipe
     async fn observe<T: AsyncRead + Unpin>(pipe: T, mailbox: mpsc::Sender<Mail>) {
         let mut reader = BufReader::new(pipe);
+        let mut buffer_data: Vec<u8> = Vec::new();
 
         loop {
-            let mail = Mail::from_stream(&mut reader).await;
+            let mail = Mail::from_stream(&mut reader, &mut buffer_data).await;
 
             match mail {
                 Ok(mail) => {

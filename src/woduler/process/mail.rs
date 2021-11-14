@@ -31,14 +31,12 @@ impl Mail {
         res
     }
 
-    pub async fn from_stream<T>(stream: &mut T) -> Result<Self, std::io::Error>
+    pub async fn from_stream<T>(stream: &mut T, data: &mut Vec<u8>) -> Result<Self, std::io::Error>
     where
         T: AsyncBufRead + Unpin,
     {
-        let mut data: Vec<u8> = Vec::new();
-
-        // Read from the stream
         let mut buffer: Vec<u8> = vec![0; 128];
+        let mut internal_data = data.clone();
 
         loop {
             let res = stream.read(&mut buffer).await;
@@ -55,26 +53,32 @@ impl Mail {
                     }
 
                     // Copy data to the local data store
-                    data.append(&mut buffer[..n].to_vec());
+                    internal_data.append(&mut buffer[..n].to_vec());
 
                     // If more than or equal to 1 byte are read then setup then setup the type of the read
-                    let typ: u8 = data[0];
+                    let typ: u8 = internal_data[0];
 
-                    // If length is 5 bytes or more then safe to parse the size of the data or else retry
-                    if n < MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
+                    // If length is 9 bytes or more then safe to parse the size of the data or else retry
+                    if internal_data.len() < MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
                         continue;
                     }
                     let payload_size = u64::from_le_bytes(
-                        data[MAIL_TYPE_SIZE..MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE]
+                        internal_data[MAIL_TYPE_SIZE..MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE]
                             .try_into()
                             .unwrap(),
                     );
 
                     // Read till the payload_size
-                    if n < payload_size as usize + MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
+                    if internal_data.len() < payload_size as usize + MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
                         continue;
                     }
-                    let payload = &data[MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE..];
+
+                    let payload_end_idx = MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE + payload_size as usize;
+                    let payload = &internal_data[MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE..payload_end_idx];
+
+                    // Clear out previous buffer and save the left out buffer for next processing
+                    data.clear();
+                    data.append(&mut internal_data[payload_end_idx..].to_vec());
 
                     Ok(Self {
                         typ,
