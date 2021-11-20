@@ -4,4 +4,4 @@ run: compile
 
 .PHONY: compile
 compile:
-	cargo build
+	cargo build $(CFLAGS)
