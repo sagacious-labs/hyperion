@@ -1,0 +1,5 @@
+.git
+.vscode
+target
+Dockerfile
+.dockerignore
