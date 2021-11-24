@@ -52,6 +52,9 @@ impl Mail {
                         });
                     }
 
+                    // Log the read data at trace level for debugging
+                    log::trace!("[HYPERION MAIL] read data: {:?}", buffer);
+
                     // Copy data to the local data store
                     internal_data.append(&mut buffer[..n].to_vec());
 
@@ -69,12 +72,16 @@ impl Mail {
                     );
 
                     // Read till the payload_size
-                    if internal_data.len() < payload_size as usize + MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE {
+                    if internal_data.len()
+                        < payload_size as usize + MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE
+                    {
                         continue;
                     }
 
-                    let payload_end_idx = MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE + payload_size as usize;
-                    let payload = &internal_data[MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE..payload_end_idx];
+                    let payload_end_idx =
+                        MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE + payload_size as usize;
+                    let payload =
+                        &internal_data[MAIL_TYPE_SIZE + MAIL_PAYLOAD_SIZE..payload_end_idx];
 
                     // Clear out previous buffer and save the left out buffer for next processing
                     data.clear();
