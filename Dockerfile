@@ -8,7 +8,6 @@ RUN make compile CFLAGS=--release
 
 FROM golang:buster as wodule-setup
 WORKDIR /wodules
-RUN apt install -y make
 RUN git clone https://github.com/sagacious-labs/hyperion-network-watcher.git --depth=1
 RUN cd hyperion-network-watcher && CGO_ENABLED=0 make compile
 
